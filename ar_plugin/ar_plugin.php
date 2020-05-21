@@ -25,17 +25,19 @@ function getProductViews($productID, $uID){ //παιρνει απο την βα�
 }
 
 function getTopViewed($num_posts=4, $uID){ //ταξινομηση των most viewed products
+	   $anna = $uID;
 	   $args = array(
             'posts_per_page' =>  $num_posts,
+            'no_found_rows'  =>  1,
             'post_status'    => 'publish',
             'post_type'      => 'product',            
             'orderby'        => 'meta_value_num',
             'order'          => 'DESC',
-            'meta_key'       =>  $uID
+            'meta_key'       =>  $anna
 	   );
 	   $args['meta_query'] = array(
 	   	   array(
-             'key'     => $uID, 
+             'key'     => $anna, 
              'value'   => '0',
              'type'    => 'numeric',
              'compare' => '>',
@@ -47,9 +49,11 @@ function getTopViewed($num_posts=4, $uID){ //ταξινομηση των most vi
 
 // function to count views.
 function setProductViews($productID, $uID) { //βαζει τον counter για καθε προιον και για καθε χρηστη
-    $count_key = 'product_views_count';
+    $count_key = $uID;
     $count = get_post_meta($productID, $count_key, true);
-    if($count==''){
+    var_dump($count);
+    var_dump($uID);
+    if($count ==''){
         $count = 1;
         delete_post_meta($productID, $count_key);
         add_post_meta($productID, $count_key, '1');
@@ -71,17 +75,23 @@ function setViewInit(){ //δινουμε id χρηστη και προιοντο
 
 function shortcode_create_topViewedProducts($num_posts = 4){ //show top viewed products
 	ob_start(); // prevent premature outputting of html
-
+	global $uID;
+	$uID = get_current_user_id();
+   
     $top_prod = getTopViewed($num_posts,$uID); //get top products
     $chuck_pur = validate_top_products($top_prod); //validate top products
+    print_r($top_prod);
+   // print_r($top_prod);
     if($chuck_pur == null){
        echo "no products found";
     }
     else{
     	echo '<ul class="woo-most-viewed product_list_widget">';
-    	while($chuck_pur->have_posts()){
-    		$chuck_pur->the_post();
+    	while($check_pur->have_posts()){
+    		$chuck_pur->the_post();    		 
     		global $product;
+
+            
     		?>
 			<li>
 				<a href="<?php echo esc_url( get_permalink( $product->id ) ); ?>"
@@ -113,7 +123,7 @@ function matched_cart_items($top_prod) { //προιοντα που δεν ειν
           	$top_prod->the_post(); //παρε ενα προιον
   	        global $product;
             
-            if(!(in_array($product->id,  $cart_item['product_id']))){ //αν δεν υπαρχει στο καλαθι
+            if($product->id !=  $cart_item['product_id']){ //αν δεν υπαρχει στο καλαθι
                $temp1_array[] = $product->id; //βαλτο στον πινακα
              }
          }        
@@ -122,22 +132,26 @@ function matched_cart_items($top_prod) { //προιοντα που δεν ειν
 }
 
 function validate_top_products($top_prod){ //ελέγχουμε αν το προιον εχει αγοραστει απο εναν συγκεκριμενο χρηστη ή αν υπαρχει στο καλαθι
-	$temp_array = array();
-	
+	//$temp_array = array();
+	//print_r($top_prod);
+	echo "this is top prod";
+	//print_r($top_prod);
 	$user = wp_get_current_user();
     $user_id = $user->ID; // Get the user ID
     $customer_email = $user->user_email; // Get the user email
   while($top_prod->have_posts()){ //όσο υπαρχουν προιοντα 
   	$top_prod->the_post(); //παρε ενα προιον
+  	echo 'sth';
   	global $product;
-
+    print_r($product->id);
 	if( wc_customer_bought_product( $customer_email, $user_id, $product->id ) == false ) { //αν ο χρηστης δεν εχει αγορασει το προιον
-       $temp_array[] = $product->id; //βαλε το προιον στον πινακα
+      // $temp_array[] = $product->id; //βαλε το προιον στον πινακα
     } else {
+    	wp_delete_post($product->id );
       echo "Has not bought the product yet";
     }
   }
-  $validated_top = matched_cart_items($temp_array);
+  $validated_top = matched_cart_items($top_prod);
   return $validated_top; //επεστρεψε τον πινακα
 }
 
@@ -155,6 +169,6 @@ function ar_widget_init()
 	require_once('ar_shortcodes.php');
 
 	add_action('widgets_init', 'ar_plugin_register_widgets');
-	add_action('woocommerce_after_single_product','setViewInit'); //καλεί την setProductViews
+	add_action('woocommerce_before_single_product','setViewInit'); //καλεί την setProductViews
 }
 add_action('plugins_loaded', 'ar_widget_init');
