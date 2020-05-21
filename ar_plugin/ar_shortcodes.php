@@ -10,5 +10,8 @@ function arplugin_topViewedProducts_shortcode($atts){
       	),
       	$atts
       );
-
+     $content =  shortcode_create_topViewedProducts($atts['top_products']);
+     return $content;
 }
+
+add_shortcode('ar_shortcode1', 'arplugin_topViewedProducts_shortcode');
