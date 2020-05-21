@@ -26,7 +26,7 @@ function getProductViews($productID, $uID){ //παιρνει απο την βα�
 
 function getTopViewed($num_posts=4, $uID){ //ταξινομηση των most viewed products
 	   $args = array(
-            'posts_per_page' => num_posts,
+            'posts_per_page' =>  $num_posts,
             'post_status'    => 'publish',
             'post_type'      => 'product',            
             'orderby'        => 'meta_value_num',
@@ -68,9 +68,83 @@ function setViewInit(){ //δινουμε id χρηστη και προιοντο
 	setProductViews($curProdID, $uID);
 }
 
+
+function shortcode_create_topViewedProducts($num_posts = 4){ //show top viewed products
+	ob_start(); // prevent premature outputting of html
+
+    $top_prod = getTopViewed($num_posts,$uID); //get top products
+    $chuck_pur = validate_top_products($top_prod); //validate top products
+    if($chuck_pur == null){
+       echo "no products found";
+    }
+    else{
+    	echo '<ul class="woo-most-viewed product_list_widget">';
+    	while($chuck_pur->have_posts()){
+    		$chuck_pur->the_post();
+    		global $product;
+    		?>
+			<li>
+				<a href="<?php echo esc_url( get_permalink( $product->id ) ); ?>"
+				   title="<?php echo esc_attr( $product->get_title() ); ?>">
+					<?php echo $product->get_image(); ?>
+					<span class="product-title"><?php echo $product->get_title(); ?></span>
+				</a>
+				<?php echo wcmvp_get_view_count_html( $product->id ); ?>
+				<?php echo $product->get_price_html(); ?>
+			</li>
+			<?php
+    	}
+    	echo '</ul>';
+    }
+    wp_reset_postdata(); //ensures that the global $post has been restored to the current post in the main query.
+    $content = ob_get_clean();
+    return $content;
+}
+
+function matched_cart_items($top_prod) { //προιοντα που δεν ειναι στο καλαθι
+   $temp1_array = array();
+
+    if ( ! WC()->cart->is_empty() ) { //αν το καλαθι δεν ειναι αδειο
+        
+        foreach(WC()->cart->get_cart() as $cart_item ) { //για καθε προιον που υπαρχει στο καλαθι
+            // Handling also variable products and their products variations
+         // $cart_item_ids = array($cart_item['product_id'], $cart_item['variation_id']);
+          while($top_prod->have_posts()){ //για καθε top viewed προιον
+          	$top_prod->the_post(); //παρε ενα προιον
+  	        global $product;
+            
+            if(!(in_array($product->id,  $cart_item['product_id']))){ //αν δεν υπαρχει στο καλαθι
+               $temp1_array[] = $product->id; //βαλτο στον πινακα
+             }
+         }        
+     }
+  }
+}
+
+function validate_top_products($top_prod){ //ελέγχουμε αν το προιον εχει αγοραστει απο εναν συγκεκριμενο χρηστη ή αν υπαρχει στο καλαθι
+	$temp_array = array();
+	
+	$user = wp_get_current_user();
+    $user_id = $user->ID; // Get the user ID
+    $customer_email = $user->user_email; // Get the user email
+  while($top_prod->have_posts()){ //όσο υπαρχουν προιοντα 
+  	$top_prod->the_post(); //παρε ενα προιον
+  	global $product;
+
+	if( wc_customer_bought_product( $customer_email, $user_id, $product->id ) == false ) { //αν ο χρηστης δεν εχει αγορασει το προιον
+       $temp_array[] = $product->id; //βαλε το προιον στον πινακα
+    } else {
+      echo "Has not bought the product yet";
+    }
+  }
+  $validated_top = matched_cart_items($temp_array);
+  return $validated_top; //επεστρεψε τον πινακα
+}
+
 function ar_plugin_register_widgets(){
 	register_widget('ar_widget');
 }
+
 function ar_widget_init()
 {
 	if (! class_exists('WooCommerce') ) {
@@ -78,6 +152,8 @@ function ar_widget_init()
 	}
      
 	require_once('ar_widget.php');
+	require_once('ar_shortcodes.php');
+
 	add_action('widgets_init', 'ar_plugin_register_widgets');
 	add_action('woocommerce_after_single_product','setViewInit'); //καλεί την setProductViews
 }
