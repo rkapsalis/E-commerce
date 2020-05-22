@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 function getProductViews($productID, $uID){ //παιρνει απο την βαση τον counter για καθε προιον και για καθε χρηστη
-    $count_key = 'product_views_count';
+    $count_key = $uID;
     $count = get_post_meta($productID, $count_key, true);
     if($count==''){
         delete_post_meta($productID, $count_key);
@@ -47,9 +47,10 @@ function getTopViewed($num_posts, $uID){ //ταξινομηση των most view
     $ar_query = new WP_Query($args);
     $posts = $ar_query->posts;
   foreach($posts as $post){
-      var_dump($post);
-   }
- 
+      //print_r($post);
+      // var_dump($post->$count_key);
+  }
+
     return $ar_query;
 }
 
@@ -97,22 +98,25 @@ function shortcode_create_topViewedProducts($num_posts ){ //show top viewed prod
     }
     else{
     	echo '<ul class="woo-most-viewed product_list_widget">';
-    	while($chuck_pur->have_posts()){
-    		$chuck_pur->the_post();    		 
+    	while($top_prod->have_posts()){
+    		$top_prod->the_post();    		 
     		global $product;
             //var_dump($post->ID);
-            
-    		?>
-			<li>
-				<a href="<?php echo esc_url( get_permalink( $product->id ) ); ?>"
-				   title="<?php echo esc_attr( $product->get_title() ); ?>">
-					<?php echo $product->get_image(); ?>
-					<span class="product-title"><?php echo $product->get_title(); ?></span>
-				</a>
-				<?php // echo wcmvp_get_view_count_html( $product->id ); ?>
-				<?php //echo $product->get_price_html(); ?>
-			</li>
-			<?php
+            $views = getProductViews($product->id, $uID);
+            if(in_array($product->id, $chuck_pur)){
+	    		?>
+				<li>
+					<a href="<?php echo esc_url( get_permalink( $product->id ) ); ?>"
+					   title="<?php echo esc_attr( $product->get_title() ); ?>">
+						<?php echo $product->get_image(); ?>
+						<span class="product-title"><?php echo $product->get_title(); ?></span>
+						<span class="product-count"><?php echo $views; ?></span>
+					</a>
+					<?php // echo wcmvp_get_view_count_html( $product->id ); ?>
+					<?php //echo $product->get_price_html(); ?>
+				</li>
+				<?php
+		   }
     	}
     	echo '</ul>';
     }
@@ -129,11 +133,11 @@ function matched_cart_items($top_prod) { //προιοντα που δεν ειν
         foreach(WC()->cart->get_cart() as $cart_item ) { //για καθε προιον που υπαρχει στο καλαθι
             // Handling also variable products and their products variations         
   	       // global $product;            
-            //if($value != $cart_item['product_id']){ //αν δεν υπαρχει στο καλαθι
-        	if(in_array($cart_item['product_id'], $top_prod)){
-               unset($top_prod[array_search($cart_item['product_id'],$top_prod)] ); //βαλτο στον πινακα            	
-            	//print_r($product->id);
-               echo "to ceid einai teleio";
+            //if($value != $cart_item['product_id']){ 
+        	if(in_array($cart_item['product_id'], $top_prod)){ //αν υπαρχει στο καλαθι
+               unset($top_prod[array_search($cart_item['product_id'],$top_prod)] ); //βγαλτο απο τον πινακα
+            	//wp_delete_post($id, false);
+            	echo "to ceid einai teleio";
            }              
      }
   }
@@ -155,14 +159,13 @@ function validate_top_products($top_prod){ //ελέγχουμε αν το προ
   	echo 'sth';
   	global $product;
     //print_r($product->id);
-    var_dump(wc_customer_bought_product($customer_email, $user_id, $product->id )); 
-  	if(has_bought_items($user_id, $product->id)==false){ //αν ο χρηστης δεν εχει αγορασει το προιον
+    if(wc_customer_bought_product($customer_email, $user_id, $product->id ) ==false){ //αν ο χρηστης δεν εχει αγορασει το προιον
       $temp_array[] = $product->id; //βαλε το προιον στον πινακα
-		
+		//wp_delete_post($id1, false);
       echo "Has not bought the product yet";
     } 
   }
-   
+   //wp_reset_postdata ();   
  // var_dump(wc_get_orders($user_id));
   var_dump($temp_array);
   $validated_top = matched_cart_items($temp_array);
