@@ -31,8 +31,10 @@ class ar_widget extends WP_Widget {
       echo $args['before_title'] . $title . $args['after_title'];
   
      // This is where you run the code and display the output
+   $ar_widget=(int)"4";
    echo __( 'Hello, World!', 'ar_widget_domain' );
-   echo shortcode_create_topViewedProducts('ar_widget');	 
+   echo shortcode_create_topViewedProducts($ar_widget);
+   echo shortcode_create_mostSimilarBought($ar_widget);
    echo $args['after_widget'];
  }
           
