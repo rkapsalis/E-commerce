@@ -25,7 +25,7 @@ function getProductViews($productID, $uID){ //παιρνει απο την βα�
 }
 
 function getTopViewed($num_posts, $uID){ //ταξινομηση των most viewed products
-	var_dump($num_posts);
+	//var_dump($num_posts);
 	   $count_key = $uID;
 	   $args = array(
             'posts_per_page' =>  $num_posts,
@@ -58,8 +58,8 @@ function getTopViewed($num_posts, $uID){ //ταξινομηση των most view
 function setProductViews($productID, $uID) { //βαζει τον counter για καθε προιον και για καθε χρηστη
     $count_key = $uID;
     $count = get_post_meta($productID, $count_key, true);
-    var_dump($count);
-    var_dump($uID);
+    //var_dump($count);
+    //var_dump($uID);
     if($count ==''){
         $count = 1;
           echo "add";
@@ -88,7 +88,7 @@ function shortcode_create_topViewedProducts($num_posts ){ //show top viewed prod
 	ob_start(); // prevent premature outputting of html
 	global $uID;
 	$uID = get_current_user_id();
-    var_dump($num_posts);
+    //var_dump($num_posts);
     $top_prod  = getTopViewed($num_posts,$uID); //get top products
     $chuck_pur = validate_top_products($top_prod); //validate top products
     //print_r($chuck_pur);
@@ -141,7 +141,7 @@ function matched_cart_items($top_prod) { //προιοντα που δεν ειν
            }              
      }
   }
-  var_dump($top_prod);
+  //var_dump($top_prod);
   return $top_prod;
 }
 
@@ -153,7 +153,7 @@ function validate_top_products($top_prod){ //ελέγχουμε αν το προ
 	$user = wp_get_current_user();
     $user_id = $user->ID; // Get the user ID
     $customer_email = $user->user_email; // Get the user email
-    var_dump($customer_email);
+   // var_dump($customer_email);
   while($top_prod->have_posts()){ //όσο υπαρχουν προιοντα 
   	$top_prod->the_post(); //παρε ενα προιον
   	echo 'sth';
@@ -167,9 +167,120 @@ function validate_top_products($top_prod){ //ελέγχουμε αν το προ
   }
    //wp_reset_postdata ();   
  // var_dump(wc_get_orders($user_id));
-  var_dump($temp_array);
+ // var_dump($temp_array);
   $validated_top = matched_cart_items($temp_array);
   return $validated_top; //επεστρεψε τον πινακα
+}
+
+
+
+//---------------------WIDGET 2--------------------
+
+
+function get_similarBought($category, $products, $num_posts){
+	//var_dump($category);
+	$args = array(
+	   'post_type'      => 'product',
+	   'post_status'    => 'publish',
+	   'posts_per_page' =>  $num_posts,
+	   'meta_key'       => 'total_sales',
+	   'orderby'        => 'meta_value_num',
+	   'order'          => 'DESC',
+	   'tax_query'      =>  array(
+	      'relation' => 'AND',
+	      array(
+	          'taxonomy' => 'product_cat',
+	          'field'    => 'slug',
+	          'terms'    =>  $category
+	      ),
+	      array(
+	           'taxonomy'  => 'products',
+	            'field'    => 'term_id',
+	            'terms'    =>  $products,
+	            'operator' =>  'NOT IN'
+
+	      ),
+
+	   ),
+	   
+	);
+   $ar_query2 = new WP_Query($args);
+   //global $product;
+  $units_sold = get_post_meta( 319, 'total_sales', true );
+  var_dump($units_sold);
+   $posts1 = $ar_query2->posts;
+  foreach($posts1 as $post){
+      print_r($post);
+  	//var_dump($post->get_total_sales());
+      //var_dump($post->'meta_value_num');
+  }
+    //var_dump($ar_query2);
+   return $ar_query2;
+  
+}
+
+function user_cartItems($num_posts) { //προιοντα που ειναι στο καλαθι
+   $prodID = array();
+   $product_cat = array();
+
+    if ( ! WC()->cart->is_empty() ) { //αν το καλαθι δεν ειναι αδειο
+        
+        foreach(WC()->cart->get_cart() as $cart_item ) { //για καθε προιον που υπαρχει στο καλαθι
+            // Handling also variable products and their products variations         
+  	       //global $product;  
+  	       $prodID[] = $cart_item['product_id'];  
+  	       
+           $terms = get_the_terms( $cart_item['product_id'], 'product_cat' );
+           var_dump($terms);
+			foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
+			   $product_cat[] = $term->slug;
+			}
+
+			
+
+        	         
+     }
+     
+     var_dump($prodID); 
+     $product_cat = array_unique($product_cat); //βγάλε τα διπλοτυπα
+     var_dump( $product_cat) ;
+  }
+  $overal_prodID = get_userOrders($prodID);
+  $finalProd = get_similarBought($product_cat, $overal_prodID, $num_posts);
+  //var_dump($finalProd);
+  return $finalProd;
+ 
+}
+
+function get_userOrders($prodID){
+	global $uID;
+	$uID = get_current_user_id();
+	$args = array(
+    'customer_id' => $uID
+   );
+   $orders = wc_get_orders($args); //παρε ολες τις παραγγελιες απο το συγκεκριμενο χρηστη
+   //var_dump($orders);
+   echo sizeof($orders);
+   //$order = wc_get_order( $order_id );
+   foreach($orders as $order){ //για καθε παραγγελια
+	   $items = $order->get_items();
+	   foreach ( $items as $item ) {
+		   
+		    $product_id = $item->get_product_id(); //παρε το product id
+		    $prodID[] = $product_id;
+		    //$product_variation_id = $item->get_variation_id();
+	   }
+ }
+ $prodID = array_unique($prodID);
+ var_dump($prodID);
+ return $prodID;
+}
+
+function shortcode_create_mostSimilarBought($num_posts){    
+    user_cartItems($num_posts);
+    
+    
+    
 }
 
 function ar_plugin_register_widgets(){
