@@ -85,7 +85,7 @@ function setViewInit(){ //δινουμε id χρηστη και προιοντο
 
 
 function shortcode_create_topViewedProducts($num_posts ){ //show top viewed products
-	ob_start(); // prevent premature outputting of html
+	//ob_start(); // prevent premature outputting of html
 	global $uID;
 	$uID = get_current_user_id();
     //var_dump($num_posts);
@@ -97,32 +97,59 @@ function shortcode_create_topViewedProducts($num_posts ){ //show top viewed prod
        echo "no products found";
     }
     else{
-    	echo '<ul class="woo-most-viewed product_list_widget">';
+    	//echo '<ul class="woo-most-viewed product_list_widget">';
+    	$anna='Top viewed products';
+        $result .='<head><div class="section-title"><h2><font size ="5">'.$anna.' </font></h2></div></head>';
+
     	while($top_prod->have_posts()){
     		$top_prod->the_post();    		 
     		global $product;
-            //var_dump($post->ID);
+            //var_dump($product->id);
             $views = getProductViews($product->id, $uID);
+            $i_url = wp_get_attachment_image_src(get_post_thumbnail_id($product->id),$size="thumbnail");
+            $prod = get_permalink();
+            
             if(in_array($product->id, $chuck_pur)){
-	    		?>
-				<li>
-					<a href="<?php echo esc_url( get_permalink( $product->id ) ); ?>"
-					   title="<?php echo esc_attr( $product->get_title() ); ?>">
-						<?php echo $product->get_image(); ?>
-						<span class="product-title"><?php echo $product->get_title(); ?></span>
-						<span class="product-count"><?php echo $views; ?></span>
-					</a>
-					<?php // echo wcmvp_get_view_count_html( $product->id ); ?>
-					<?php //echo $product->get_price_html(); ?>
-				</li>
-				<?php
+	    		var_dump($prod);
+	    	$result .='</body>
+	    		<div class = "active" style="width: 254.667px; margin-right:10px; display:block; margin-bottom:20px; ">
+
+		    		<a class="carousel-item" href="'.$prod.'" target="">
+			    		<div class="teaser-image">
+			    			<img class= "img-responsive" data-src="htteps://" width="124" height="124" src="'.$i_url[0].'" style="opacity:1;" sizes="(max-width:124px) 100vw, 124px">
+			    		</div>
+		    		</a>
+		    		<span><font size ="2">
+		    		'.$product->get_price_html().' <br>
+		    		</span></font>
+		    		<span><font size ="2">
+		    		'.$views.' 
+		    		</span></font>
+		    		
+		    		<div class="woocommerce-LoopProduct-link woocommerce-loop-product__link">
+               
+                      <a class="button product_type_variable add_to_cart_button" href="'.$prod.'" "aria-label="Add"'.$product->get_title().'"to your cart" data-quantity="1" data-product_id="'.$product->get_id().'" data-product_sku="'.$product->get_sku().'" rel="nofollow" > Επιλογή </a></font>
+	    		    </div>
+
+	    		
+					';
+				
+				
 		   }
+		  
     	}
-    	echo '</ul>';
+    	 $result.='
+		   </div>
+		   </body>
+
+		   ';
+		  
+    	
     }
+     return $result;
     wp_reset_postdata(); //ensures that the global $post has been restored to the current post in the main query.
-    $content = ob_get_clean();
-    return $content;
+    //$content = ob_get_clean();
+   // return $content;
 }
 
 function matched_cart_items($top_prod) { //προιοντα που δεν ειναι στο καλαθι
@@ -207,7 +234,7 @@ function get_similarBought($category, $products, $num_posts){
    $ar_query2 = new WP_Query($args);
    //global $product;
   $units_sold = get_post_meta( 319, 'total_sales', true );
-  var_dump($units_sold);
+  //var_dump($units_sold);
    $posts1 = $ar_query2->posts;
   foreach($posts1 as $post){
       print_r($post);
@@ -231,7 +258,7 @@ function user_cartItems($num_posts) { //προιοντα που ειναι στ�
   	       $prodID[] = $cart_item['product_id'];  
   	       
            $terms = get_the_terms( $cart_item['product_id'], 'product_cat' );
-           var_dump($terms);
+           //var_dump($terms);
 			foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
 			   $product_cat[] = $term->slug;
 			}
@@ -241,9 +268,9 @@ function user_cartItems($num_posts) { //προιοντα που ειναι στ�
         	         
      }
      
-     var_dump($prodID); 
+     //var_dump($prodID); 
      $product_cat = array_unique($product_cat); //βγάλε τα διπλοτυπα
-     var_dump( $product_cat) ;
+     //var_dump( $product_cat) ;
   }
   $overal_prodID = get_userOrders($prodID);
   $finalProd = get_similarBought($product_cat, $overal_prodID, $num_posts);
@@ -272,7 +299,7 @@ function get_userOrders($prodID){
 	   }
  }
  $prodID = array_unique($prodID);
- var_dump($prodID);
+ //var_dump($prodID);
  return $prodID;
 }
 
