@@ -205,44 +205,76 @@ function validate_top_products($top_prod){ //ελέγχουμε αν το προ
 
 
 function get_similarBought($category, $products, $num_posts){
-	//var_dump($category);
-	$args = array(
+	var_dump($category);
+  print_r($products);
+  var_dump(gettype($products));
+  //$total_items = WC()->cart->get_cart_contents_count();
+
+	$args1 = array(
 	   'post_type'      => 'product',
-	   'post_status'    => 'publish',
-	   'posts_per_page' =>  $num_posts,
+     'post_status'	  => 'publish',   
+	   'posts_per_page' =>  -1,
 	   'meta_key'       => 'total_sales',
+     'post__not_in'   => $products,
 	   'orderby'        => 'meta_value_num',
 	   'order'          => 'DESC',
-	   'tax_query'      =>  array(
-	      'relation' => 'AND',
-	      array(
-	          'taxonomy' => 'product_cat',
-	          'field'    => 'slug',
-	          'terms'    =>  $category
-	      ),
-	      array(
-	           'taxonomy'  => 'products',
-	            'field'    => 'term_id',
-	            'terms'    =>  $products,
-	            'operator' =>  'NOT IN'
-
-	      ),
-
-	   ),
+     'meta_query' => array(
+            array(
+             'key' => 'total_sales',
+            'value' => 0,
+            'compare' => '>'
+            ),
+      ),
+     'tax_query'   =>  array(
+        'relation' => 'AND',
+        array(
+            'taxonomy' => 'product_cat',
+            'field'    => 'slug',
+            'terms'    =>  $category,
+        ),     
+        
+     )	  
 	   
 	);
-   $ar_query2 = new WP_Query($args);
+   $ar_query2 = new WP_Query($args1);
+     var_dump($ar_query2);
+   wp_reset_postdata();
    //global $product;
-  $units_sold = get_post_meta( 319, 'total_sales', true );
+  //$units_sold = get_post_meta( 113, 'total_sales', true );
   //var_dump($units_sold);
-   $posts1 = $ar_query2->posts;
-  foreach($posts1 as $post){
-      print_r($post);
-  	//var_dump($post->get_total_sales());
+   $posts = $ar_query2->posts;
+  foreach($posts as $post){
+    // echo '<p>' . get_the_title() . ' (';
+    //         echo get_post_meta( get_the_id(), 'total_sales', true) . ')</p>';
+
+      //var_dump($post);
+  	global $product;
+  	 $units_sold1 = get_post_meta( $post->ID, 'total_sales', true );
+  	 var_dump($units_sold1);
+  	//var_dump($product->id);
+  	//echo $product->get_total_sales();
+  	$terms = get_the_terms( $product->id, 'product_cat' );
+           //var_dump($terms);
+			foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
+			   $anna1[] = $term->slug;
+			}
+  	
+  	//var_dump($anna1);
       //var_dump($post->'meta_value_num');
+  	
+  	var_dump($post->ID);
   }
-    //var_dump($ar_query2);
-   return $ar_query2;
+     
+  $customer_orders = get_posts( array(
+    'numberposts' => -1,
+    'meta_key'    => '_customer_user',
+    'meta_value'  => get_current_user_id(),
+    'post_type'   => wc_get_order_types(),
+    'post_status' => array_keys( wc_get_order_statuses() ),
+) );
+  //var_dump($customer_orders);
+
+return $ar_query2;
   
 }
 
@@ -256,12 +288,22 @@ function user_cartItems($num_posts) { //προιοντα που ειναι στ�
             // Handling also variable products and their products variations         
   	       //global $product;  
   	       $prodID[] = $cart_item['product_id'];  
-  	       
+  	       //var_dump($prodID);
            $terms = get_the_terms( $cart_item['product_id'], 'product_cat' );
-           //var_dump($terms);
-			foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
-			   $product_cat[] = $term->slug;
-			}
+           $slug_size = sizeof($terms);
+           var_dump($slug_size);
+          if($slug_size>1){
+           //var_dump($terms[1]);
+           $product_cat[] = $terms[$slug_size-1]->slug;
+
+         }
+         else{
+          $product_cat[] = $terms[0]->slug;
+         }
+			// foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
+			   
+   //       //var_dump($product_cat);
+			// }
 
 			
 
