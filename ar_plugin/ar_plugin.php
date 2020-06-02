@@ -12,10 +12,21 @@
  */
 //security: blocking direct access to our plugin PHP files
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
+if (! function_exists ('wcckplugin_has_parent_plugin') ) {
+  function wcckplugin_has_parent_plugin() {
+    if ( is_admin() && ( ! class_exists ('WooCommerce') && current_user_can( 'activate_plugins') ) ) {
+      add_action ('admin_notices', create_function( null, 'echo \'<div class="error"><p>\' . sprintf( _(\'Activation failes : <strong> WooCommerce</strong> must be activated to use the <strong>WooCommerce ck </strong> plugin. %sVisit your plugins page to install and activate.\',\'ckPlugin\'),\'<a href="\' . admin_url(\'plugins.php#woocommerce\' ) .\'">\') . \'</a></p></div>\';') );
+      deactivate_plugins (plugin_basename (_FILE_));
+      if (isset ($_GET['activate'] ) ) {
+        unset ($_GET['activate'] );
+      }
+    }
+  }
+}
 
 function getProductViews($productID, $uID){ //παιρνει απο την βαση τον counter για καθε προιον και για καθε χρηστη
     $count_key = $uID;
-    $count = get_post_meta($productID, $count_key, true);
+    $count = get_post_meta($productID, $count_key, true); 
     if($count==''){
         delete_post_meta($productID, $count_key);
         add_post_meta($productID, $count_key, '0');
@@ -24,14 +35,15 @@ function getProductViews($productID, $uID){ //παιρνει απο την βα�
     return $count.' Views';
 }
 
-function getTopViewed($num_posts, $uID){ //ταξινομηση των most viewed products
-	//var_dump($num_posts);
+function getTopViewed($num_posts, $uID, $chuck_pur){ //ταξινομηση των most viewed products
+	var_dump($num_posts);
 	   $count_key = $uID;
 	   $args = array(
-            'posts_per_page' =>  $num_posts,
+            'posts_per_page' =>  4,
             'no_found_rows'  =>  1,
             'post_status'    => 'publish',
-            'post_type'      => 'product',            
+            'post_type'      => 'product', 
+            'post__not_in'   =>  $chuck_pur,         
             'orderby'        => 'meta_value_num',
             'order'          => 'DESC',
             'meta_key'       =>  $count_key,
@@ -44,22 +56,17 @@ function getTopViewed($num_posts, $uID){ //ταξινομηση των most view
              'compare' => '>',
 	   	   ),
 	   );
-    $ar_query = new WP_Query($args);
-    $posts = $ar_query->posts;
-  foreach($posts as $post){
-      //print_r($post);
-      // var_dump($post->$count_key);
-  }
+    $ar_query = new WP_Query($args); 
 
     return $ar_query;
 }
+
 
 // function to count views.
 function setProductViews($productID, $uID) { //βαζει τον counter για καθε προιον και για καθε χρηστη
     $count_key = $uID;
     $count = get_post_meta($productID, $count_key, true);
-    //var_dump($count);
-    //var_dump($uID);
+   
     if($count ==''){
         $count = 1;
           echo "add";
@@ -74,6 +81,7 @@ function setProductViews($productID, $uID) { //βαζει τον counter για 
     }
 }
 
+
 function setViewInit(){ //δινουμε id χρηστη και προιοντος
 	global $product;
 	global $uID;
@@ -85,34 +93,32 @@ function setViewInit(){ //δινουμε id χρηστη και προιοντο
 
 
 function shortcode_create_topViewedProducts($num_posts ){ //show top viewed products
-	//ob_start(); // prevent premature outputting of html
+	
 	global $uID;
-	$uID = get_current_user_id();
-    //var_dump($num_posts);
-    $top_prod  = getTopViewed($num_posts,$uID); //get top products
-    $chuck_pur = validate_top_products($top_prod); //validate top products
-    //print_r($chuck_pur);
-   // print_r($top_prod);
-    if($chuck_pur == null){
+	$uID = get_current_user_id(); //get current user id
+  $chuck_pur = validate_top_products();  //παρε τα προιοντα που θες να κανεις exclude
+  $top_prod = getTopViewed($num_posts,$uID,$chuck_pur); //get top products
+    
+    if($top_prod == null){
        echo "no products found";
     }
     else{
-    	//echo '<ul class="woo-most-viewed product_list_widget">';
+    
     	$anna='Top viewed products';
         $result .='<head><div class="section-title"><h2><font size ="5">'.$anna.' </font></h2></div></head>';
 
     	while($top_prod->have_posts()){
     		$top_prod->the_post();    		 
     		global $product;
-            //var_dump($product->id);
+           
             $views = getProductViews($product->id, $uID);
+
             $i_url = wp_get_attachment_image_src(get_post_thumbnail_id($product->id),$size="thumbnail");
             $prod = get_permalink();
             
-            if(in_array($product->id, $chuck_pur)){
-	    		var_dump($prod);
+          
 	    	$result .='</body>
-	    		<div class = "active" style="width: 254.667px; margin-right:10px; display:block; margin-bottom:20px; ">
+	    		<div class = "active" style="width: 254.667px; margin-right:10px; display:inline-block; margin-bottom:20px; ">
 
 		    		<a class="carousel-item" href="'.$prod.'" target="">
 			    		<div class="teaser-image">
@@ -126,16 +132,14 @@ function shortcode_create_topViewedProducts($num_posts ){ //show top viewed prod
 		    		'.$views.' 
 		    		</span></font>
 		    		
-		    		<div class="woocommerce-LoopProduct-link woocommerce-loop-product__link">
+		    		<div >
                
-                      <a class="button product_type_variable add_to_cart_button" href="'.$prod.'" "aria-label="Add"'.$product->get_title().'"to your cart" data-quantity="1" data-product_id="'.$product->get_id().'" data-product_sku="'.$product->get_sku().'" rel="nofollow" > Επιλογή </a></font>
+                     
 	    		    </div>
 
 	    		
-					';
-				
-				
-		   }
+					';			
+		 
 		  
     	}
     	 $result.='
@@ -148,55 +152,53 @@ function shortcode_create_topViewedProducts($num_posts ){ //show top viewed prod
     }
      return $result;
     wp_reset_postdata(); //ensures that the global $post has been restored to the current post in the main query.
-    //$content = ob_get_clean();
-   // return $content;
+  
 }
 
-function matched_cart_items($top_prod) { //προιοντα που δεν ειναι στο καλαθι
-   $temp1_array = array();
 
-    if ( ! WC()->cart->is_empty() ) { //αν το καλαθι δεν ειναι αδειο
+function matched_cart_items($top_prod) { //προιοντα που δεν ειναι στο καλαθι
+  
+  global $uID;
+  global $woocommerce;
+
+ $uID = get_current_user_id();  //get current user id
+  
+    if (  WC()->cart->cart_contents_count != 0 ) { //αν το καλαθι δεν ειναι αδειο
         
-        foreach(WC()->cart->get_cart() as $cart_item ) { //για καθε προιον που υπαρχει στο καλαθι
-            // Handling also variable products and their products variations         
-  	       // global $product;            
-            //if($value != $cart_item['product_id']){ 
-        	if(in_array($cart_item['product_id'], $top_prod)){ //αν υπαρχει στο καλαθι
-               unset($top_prod[array_search($cart_item['product_id'],$top_prod)] ); //βγαλτο απο τον πινακα
-            	//wp_delete_post($id, false);
-            	echo "to ceid einai teleio";
-           }              
-     }
-  }
-  //var_dump($top_prod);
+        foreach(WC()->cart->get_cart() as $cart_item ) { //για καθε προιον που υπαρχει στο καλαθι                
+          
+           $top_prod[] = $cart_item['product_id']; //αποθηκευουμε τα ids των προιοντων που υπαρχουν στο καλαθι      
+                   
+     }  
+    
+  } 
+
+  $top_prod = array_unique($top_prod); //βγάλε τα διπλοτυπα  
   return $top_prod;
 }
 
-function validate_top_products($top_prod){ //ελέγχουμε αν το προιον εχει αγοραστει απο εναν συγκεκριμενο χρηστη ή αν υπαρχει στο καλαθι 
-	$temp_array = array();
-	//print_r($top_prod);
-	echo "this is top prod";
-	//print_r($top_prod);
-	$user = wp_get_current_user();
-    $user_id = $user->ID; // Get the user ID
-    $customer_email = $user->user_email; // Get the user email
-   // var_dump($customer_email);
-  while($top_prod->have_posts()){ //όσο υπαρχουν προιοντα 
-  	$top_prod->the_post(); //παρε ενα προιον
-  	echo 'sth';
-  	global $product;
-    //print_r($product->id);
-    if(wc_customer_bought_product($customer_email, $user_id, $product->id ) ==false){ //αν ο χρηστης δεν εχει αγορασει το προιον
-      $temp_array[] = $product->id; //βαλε το προιον στον πινακα
-		//wp_delete_post($id1, false);
-      echo "Has not bought the product yet";
-    } 
-  }
-   //wp_reset_postdata ();   
- // var_dump(wc_get_orders($user_id));
- // var_dump($temp_array);
-  $validated_top = matched_cart_items($temp_array);
-  return $validated_top; //επεστρεψε τον πινακα
+
+function validate_top_products(){ //ελέγχουμε αν το προιον εχει αγοραστει απο εναν συγκεκριμενο χρηστη ή αν υπαρχει στο καλαθι 
+	
+  global $uID;
+  $exProdID = array();
+  $uID = get_current_user_id(); //get current user id
+  $args = array(
+    'customer_id' => $uID
+   );
+   $orders = wc_get_orders($args); //παρε ολες τις παραγγελιες απο το συγκεκριμενο χρηστη
+ 
+   foreach($orders as $order){ //για καθε παραγγελια
+     $items = $order->get_items();
+     foreach ( $items as $item ) {
+       
+        $product_id = $item->get_product_id(); //παρε το product id
+        $exProdID[] = $product_id; //και προσθεσε το στον πινακα exProdID
+        
+     }
+ }
+ $exProdID = matched_cart_items($exProdID); //παιρνουμε τα μοναδικά προιοντα που δεν εχει αγοράσει ο χρήστης και δεν ειναι στο καλάθι του
+ return $exProdID;
 }
 
 
@@ -205,11 +207,8 @@ function validate_top_products($top_prod){ //ελέγχουμε αν το προ
 
 
 function get_similarBought($category, $products, $num_posts){
-	var_dump($category);
-  print_r($products);
-  var_dump(gettype($products));
-  //$total_items = WC()->cart->get_cart_contents_count();
-
+  $anna1 = array() ;
+  
 	$args1 = array(
 	   'post_type'      => 'product',
      'post_status'	  => 'publish',   
@@ -236,121 +235,162 @@ function get_similarBought($category, $products, $num_posts){
      )	  
 	   
 	);
-   $ar_query2 = new WP_Query($args1);
-     var_dump($ar_query2);
-   wp_reset_postdata();
-   //global $product;
-  //$units_sold = get_post_meta( 113, 'total_sales', true );
-  //var_dump($units_sold);
+   $ar_query2 = new WP_Query($args1);    
    $posts = $ar_query2->posts;
-  foreach($posts as $post){
-    // echo '<p>' . get_the_title() . ' (';
-    //         echo get_post_meta( get_the_id(), 'total_sales', true) . ')</p>';
 
-      //var_dump($post);
-  	global $product;
-  	 $units_sold1 = get_post_meta( $post->ID, 'total_sales', true );
-  	 var_dump($units_sold1);
-  	//var_dump($product->id);
-  	//echo $product->get_total_sales();
-  	$terms = get_the_terms( $product->id, 'product_cat' );
-           //var_dump($terms);
-			foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
-			   $anna1[] = $term->slug;
-			}
-  	
-  	//var_dump($anna1);
-      //var_dump($post->'meta_value_num');
-  	
-  	var_dump($post->ID);
-  }
-     
-  $customer_orders = get_posts( array(
-    'numberposts' => -1,
-    'meta_key'    => '_customer_user',
-    'meta_value'  => get_current_user_id(),
-    'post_type'   => wc_get_order_types(),
-    'post_status' => array_keys( wc_get_order_statuses() ),
-) );
-  //var_dump($customer_orders);
+   foreach ($category as $cat ) {
+    var_dump($cat);
+     foreach ($posts as $post) {
+      $terms = get_the_terms( $post->ID, 'product_cat' );
+      if($terms == $cat){
+        echo "anna";
+      }
+      //var_dump($terms);
+     }
+   }
+   
+   
+ //  foreach($posts as $post){  
+   
+ //  	// foreach ($ as $key => $value) {
+ //   //    # code...
+ //   //  }
+ //  // // 	 $units_sold1 = get_post_meta( $post->ID, 'total_sales', true );  	 
+ //    global $product;
+ //   	
+         
+ //  if (is_array($terms) || is_object($terms))
+ //     {
+	//   	foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
+	// 		   $anna1[] = $term->slug;
+         
+	// 	 	}
+ //  //     $anna1 = array_unique($anna1);
+      
+ //    	}  
 
+ // }
+ // var_dump($anna1);
+ //      var_dump($terms); 
+//   $customer_orders = get_posts( array(
+//     'numberposts' => -1,
+//     'meta_key'    => '_customer_user',
+//     'meta_value'  => get_current_user_id(),
+//     'post_type'   => wc_get_order_types(),
+//     'post_status' => array_keys( wc_get_order_statuses() ),
+// ) );
+ wp_reset_postdata();
 return $ar_query2;
   
 }
 
 function user_cartItems($num_posts) { //προιοντα που ειναι στο καλαθι
+  global $uID; 
+  global $woocommerce;
+
+   $uID = get_current_user_id(); //get current user id
    $prodID = array();
    $product_cat = array();
-
-    if ( ! WC()->cart->is_empty() ) { //αν το καλαθι δεν ειναι αδειο
+  
+    if (  WC()->cart->cart_contents_count != 0 ) { //αν το καλαθι δεν ειναι αδειο
         
         foreach(WC()->cart->get_cart() as $cart_item ) { //για καθε προιον που υπαρχει στο καλαθι
-            // Handling also variable products and their products variations         
-  	       //global $product;  
-  	       $prodID[] = $cart_item['product_id'];  
-  	       //var_dump($prodID);
-           $terms = get_the_terms( $cart_item['product_id'], 'product_cat' );
-           $slug_size = sizeof($terms);
+             	      
+  	       $prodID[] = $cart_item['product_id']; //προσθέτουμε στον πίνακα τα id των προιοντων που υπάρχουν στο καλαθι 	   
+           $terms = get_the_terms( $cart_item['product_id'], 'product_cat' ); //παίρνουμε για κάθε προιον την κατηγορία στην οποία ανήκει
+           //δε θέλουμε τις γονικές κατηγορίες
+           $slug_size = sizeof($terms); 
+           //ελέγχουμε αν είναι γονική κατηγορία και αποθηκεύουμε στον πίνακα product_cat το slug του προιοντος
            var_dump($slug_size);
-          if($slug_size>1){
-           //var_dump($terms[1]);
+            //var_dump($terms);
+         if($slug_size>1){ 
+         
            $product_cat[] = $terms[$slug_size-1]->slug;
-
          }
          else{
           $product_cat[] = $terms[0]->slug;
-         }
-			// foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
-			   
-   //       //var_dump($product_cat);
-			// }
-
-			
-
+         }			
         	         
-     }
-     
-     //var_dump($prodID); 
+     }     
+   
      $product_cat = array_unique($product_cat); //βγάλε τα διπλοτυπα
-     //var_dump( $product_cat) ;
+     var_dump($product_cat);
   }
-  $overal_prodID = get_userOrders($prodID);
+  $overal_prodID = get_userOrders($prodID); //παιρνουμε τα μοναδικά προιοντα που δεν εχει αγοράσει ο χρήστης και δεν ειναι στο καλάθι του
   $finalProd = get_similarBought($product_cat, $overal_prodID, $num_posts);
-  //var_dump($finalProd);
+ 
   return $finalProd;
  
 }
 
+
 function get_userOrders($prodID){
 	global $uID;
-	$uID = get_current_user_id();
+	$uID = get_current_user_id(); //get current user id
+
 	$args = array(
     'customer_id' => $uID
    );
    $orders = wc_get_orders($args); //παρε ολες τις παραγγελιες απο το συγκεκριμενο χρηστη
-   //var_dump($orders);
-   echo sizeof($orders);
-   //$order = wc_get_order( $order_id );
+ 
    foreach($orders as $order){ //για καθε παραγγελια
 	   $items = $order->get_items();
 	   foreach ( $items as $item ) {
 		   
 		    $product_id = $item->get_product_id(); //παρε το product id
-		    $prodID[] = $product_id;
-		    //$product_variation_id = $item->get_variation_id();
+		    $prodID[] = $product_id; //και βάλτο στον αντίστοιχο πινακα
+		   
 	   }
  }
- $prodID = array_unique($prodID);
- //var_dump($prodID);
+ $prodID = array_unique($prodID); //έλεγχος για διπλοτυπα
  return $prodID;
 }
 
-function shortcode_create_mostSimilarBought($num_posts){    
-    user_cartItems($num_posts);
+
+function shortcode_create_mostSimilarBought($num_posts){  
+  
+     $top_bought = user_cartItems($num_posts); 
+     $anna='Συχνά σε πωλήσεις προιόντα';
+        $result1 .='<head><div class="section-title"><h2><font size ="5">'.$anna.' </font></h2></div></head>';  
+
+      while($top_bought->have_posts()){
+        $top_bought->the_post();        
+        global $product;
+            
+            $i_url = wp_get_attachment_image_src(get_post_thumbnail_id($product->id),$size="thumbnail");
+            $prod = get_permalink();            
+            
+        $result1 .='</body>
+          <div class = "active" style="width: 254.667px; margin-right:10px; display:block; margin-bottom:20px; ">
+            <a class="carousel-item" href="'.$prod.'" target="">
+              <div class="teaser-image">
+                <img class= "img-responsive" data-src="htteps://" width="124" height="124" src="'.$i_url[0].'" style="opacity:1;" sizes="(max-width:124px) 100vw, 124px">
+              </div>
+            </a>
+            <span><font size ="2">
+            '.$product->get_price_html().' <br>
+            </span></font>
+            
+            
+            <div>
+               <a class="button product_type_variable add_to_cart_button" href="'.$prod.'" "aria-label="Add"'.$product->get_title().'"to your cart" data-quantity="1" data-product_id="'.$product->get_id().'" data-product_sku="'.$product->get_sku().'" rel="nofollow" > Επιλογή </a></font>
+                     
+              </div>
+          
+          ';   
+      
+      }
+       $result1.='
+       </div>
+       </body>
+       ';     
+
+     return $result1;
+    wp_reset_postdata(); //ensures that the global $post has been restored to the current post in the main query.
+  
+}  
     
-    
-    
-}
+
 
 function ar_plugin_register_widgets(){
 	register_widget('ar_widget');
