@@ -208,12 +208,15 @@ function validate_top_products(){ //ελέγχουμε αν το προιον ε
 
 function get_similarBought($category, $products, $num_posts){
   $anna1 = array() ;
+  $temp_cat = array();
+  $temp_prod = array();
+  $product_cats =array();
   
 	$args1 = array(
 	   'post_type'      => 'product',
      'post_status'	  => 'publish',   
 	   'posts_per_page' =>  -1,
-	   'meta_key'       => 'total_sales',
+	   'meta_key'       => 'total_sales',    
      'post__not_in'   => $products,
 	   'orderby'        => 'meta_value_num',
 	   'order'          => 'DESC',
@@ -238,17 +241,26 @@ function get_similarBought($category, $products, $num_posts){
    $ar_query2 = new WP_Query($args1);    
    $posts = $ar_query2->posts;
 
-   foreach ($category as $cat ) {
-    var_dump($cat);
-     foreach ($posts as $post) {
-      $terms = get_the_terms( $post->ID, 'product_cat' );
-      if($terms == $cat){
-        echo "anna";
-      }
+   // foreach ($category as $cat ) {
+   //  var_dump($cat);
+    //foreach ($posts as $post) {
+  //while($ar_query2->have_posts()){
+    // $product_cats = wp_get_post_terms($post->ID,'product_cat');
+
+    
+      //$anna2 = $post->ID;
+      //global $product
+      //var_dump($product->id);
+      //var_dump($anna2->get_category());
+      //$terms = get_the_terms( $post->ID, 'product_cat' );
+    //  if($terms == $cat){
+      //  echo "anna";
+     // }
       //var_dump($terms);
-     }
-   }
-   
+     //}
+     // var_dump(get_field('category'));
+  // }
+  // var_dump($product_cats)
    
  //  foreach($posts as $post){  
    
@@ -280,6 +292,7 @@ function get_similarBought($category, $products, $num_posts){
 //     'post_status' => array_keys( wc_get_order_statuses() ),
 // ) );
  wp_reset_postdata();
+ //print_r($ar_query2);
 return $ar_query2;
   
 }
@@ -348,18 +361,53 @@ function get_userOrders($prodID){
 
 
 function shortcode_create_mostSimilarBought($num_posts){  
-  
+      $temp_cat = array();
+      $temp_prod = array();
      $top_bought = user_cartItems($num_posts); 
+     while($top_bought->have_posts()){
+        $top_bought->the_post();  
+        global $product;
+        $terms3 = wp_get_post_terms( $product->id, 'product_cat', array('fields'=>'slugs'));
+         $slug_size = sizeof($terms3); 
+         var_dump($slug_size);
+        print_r($terms3);
+          if($slug_size>1){ 
+              $product_cat = $terms3[$slug_size-1];
+            
+            if(!(in_array($product_cat, $temp_cat))){
+               var_dump($product_cat);
+                $temp_cat[] = $product_cat;
+                $temp_prod[] = $product->id;
+            }
+         
+         }
+         else{
+           $product_cat = $terms3[0];
+
+            if(!(in_array($product_cat, $temp_cat))){
+               var_dump($product_cat);
+                $temp_cat[] = $product_cat;
+                $temp_prod[] = $product->id;
+            }
+
+         }  
+
+     }
+     var_dump($temp_prod);
+     var_dump($temp_cat);
      $anna='Συχνά σε πωλήσεις προιόντα';
         $result1 .='<head><div class="section-title"><h2><font size ="5">'.$anna.' </font></h2></div></head>';  
 
-      while($top_bought->have_posts()){
-        $top_bought->the_post();        
-        global $product;
+      ///while($top->have_posts()){
+        foreach ($temp_prod as $key) {
+          # code...
+       
+        //$top_bought->the_post();        
+        $product = wc_get_product( $key );
             
-            $i_url = wp_get_attachment_image_src(get_post_thumbnail_id($product->id),$size="thumbnail");
-            $prod = get_permalink();            
-            
+            $i_url = wp_get_attachment_image_src(get_post_thumbnail_id($key),$size="thumbnail");
+            $prod = get_permalink($key);            
+            var_dump($prod);
         $result1 .='</body>
           <div class = "active" style="width: 254.667px; margin-right:10px; display:block; margin-bottom:20px; ">
             <a class="carousel-item" href="'.$prod.'" target="">
