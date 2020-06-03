@@ -24,6 +24,8 @@ if (! function_exists ('wcckplugin_has_parent_plugin') ) {
   }
 }
 
+//----------------------------------------------WIDGET 1-----------------------------------------------------------
+
 function getProductViews($productID, $uID){ //παιρνει απο την βαση τον counter για καθε προιον και για καθε χρηστη
     $count_key = $uID;
     $count = get_post_meta($productID, $count_key, true); 
@@ -85,7 +87,7 @@ function setProductViews($productID, $uID) { //βαζει τον counter για 
 function setViewInit(){ //δινουμε id χρηστη και προιοντος
 	global $product;
 	global $uID;
-    $curProdID = $product->get_id(); //παιρνουμε το id του προιοντος
+  $curProdID = $product->get_id(); //παιρνουμε το id του προιοντος
 	$uID = get_current_user_id();  //παιρνουμε το id του χρηστη
 	if($uID == 0){return;}         //αν δεν εχει κανει login
 	setProductViews($curProdID, $uID);
@@ -125,18 +127,22 @@ function shortcode_create_topViewedProducts($num_posts ){ //show top viewed prod
 			    			<img class= "img-responsive" data-src="htteps://" width="124" height="124" src="'.$i_url[0].'" style="opacity:1;" sizes="(max-width:124px) 100vw, 124px">
 			    		</div>
 		    		</a>
-		    		<span><font size ="2">
-		    		'.$product->get_price_html().' <br>
-		    		</span></font>
-		    		<span><font size ="2">
-		    		'.$views.' 
+		    	
+             <span><font size ="3">
+            '.$product->get_title().' <br>
+            </span></font>
+              <span><font size ="2">
+            '.$product->get_price_html().' <br>
+            </span></font>
+		    		<span><font size ="2"> 
+		    		'.$views.' <br>
 		    		</span></font>
 		    		
-		    		<div >
-               
-                     
-	    		    </div>
 
+		    		<div class="woocommerce-LoopProduct-link woocommerce-loop-product__link" style="margin-left:1px;  margin-bottom:40px;">
+               
+                      <a class="button product_type_variable add_to_cart_button" href="'.$prod.'" "aria-label="Add"'.$product->get_title().'"to your cart" data-quantity="1" data-product_id="'.$product->get_id().'" data-product_sku="'.$product->get_sku().'" rel="nofollow" > Επιλογή </a></font>
+              </div>
 	    		
 					';			
 		 
@@ -241,59 +247,9 @@ function get_similarBought($category, $products, $num_posts){
    $ar_query2 = new WP_Query($args1);    
    $posts = $ar_query2->posts;
 
-   // foreach ($category as $cat ) {
-   //  var_dump($cat);
-    //foreach ($posts as $post) {
-  //while($ar_query2->have_posts()){
-    // $product_cats = wp_get_post_terms($post->ID,'product_cat');
-
-    
-      //$anna2 = $post->ID;
-      //global $product
-      //var_dump($product->id);
-      //var_dump($anna2->get_category());
-      //$terms = get_the_terms( $post->ID, 'product_cat' );
-    //  if($terms == $cat){
-      //  echo "anna";
-     // }
-      //var_dump($terms);
-     //}
-     // var_dump(get_field('category'));
-  // }
-  // var_dump($product_cats)
    
- //  foreach($posts as $post){  
-   
- //  	// foreach ($ as $key => $value) {
- //   //    # code...
- //   //  }
- //  // // 	 $units_sold1 = get_post_meta( $post->ID, 'total_sales', true );  	 
- //    global $product;
- //   	
-         
- //  if (is_array($terms) || is_object($terms))
- //     {
-	//   	foreach ($terms as $term) { //παιρνουμε την κατηγορια του προιοντος
-	// 		   $anna1[] = $term->slug;
-         
-	// 	 	}
- //  //     $anna1 = array_unique($anna1);
-      
- //    	}  
-
- // }
- // var_dump($anna1);
- //      var_dump($terms); 
-//   $customer_orders = get_posts( array(
-//     'numberposts' => -1,
-//     'meta_key'    => '_customer_user',
-//     'meta_value'  => get_current_user_id(),
-//     'post_type'   => wc_get_order_types(),
-//     'post_status' => array_keys( wc_get_order_statuses() ),
-// ) );
  wp_reset_postdata();
- //print_r($ar_query2);
-return $ar_query2;
+ return $ar_query2;
   
 }
 
@@ -313,9 +269,7 @@ function user_cartItems($num_posts) { //προιοντα που ειναι στ�
            $terms = get_the_terms( $cart_item['product_id'], 'product_cat' ); //παίρνουμε για κάθε προιον την κατηγορία στην οποία ανήκει
            //δε θέλουμε τις γονικές κατηγορίες
            $slug_size = sizeof($terms); 
-           //ελέγχουμε αν είναι γονική κατηγορία και αποθηκεύουμε στον πίνακα product_cat το slug του προιοντος
-           var_dump($slug_size);
-            //var_dump($terms);
+           //ελέγχουμε αν είναι γονική κατηγορία και αποθηκεύουμε στον πίνακα product_cat το slug του προιοντος          
          if($slug_size>1){ 
          
            $product_cat[] = $terms[$slug_size-1]->slug;
@@ -327,7 +281,7 @@ function user_cartItems($num_posts) { //προιοντα που ειναι στ�
      }     
    
      $product_cat = array_unique($product_cat); //βγάλε τα διπλοτυπα
-     var_dump($product_cat);
+   
   }
   $overal_prodID = get_userOrders($prodID); //παιρνουμε τα μοναδικά προιοντα που δεν εχει αγοράσει ο χρήστης και δεν ειναι στο καλάθι του
   $finalProd = get_similarBought($product_cat, $overal_prodID, $num_posts);
@@ -363,19 +317,18 @@ function get_userOrders($prodID){
 function shortcode_create_mostSimilarBought($num_posts){  
       $temp_cat = array();
       $temp_prod = array();
-     $top_bought = user_cartItems($num_posts); 
+      $top_bought = user_cartItems($num_posts); 
      while($top_bought->have_posts()){
         $top_bought->the_post();  
         global $product;
         $terms3 = wp_get_post_terms( $product->id, 'product_cat', array('fields'=>'slugs'));
          $slug_size = sizeof($terms3); 
-         var_dump($slug_size);
-        print_r($terms3);
+     
           if($slug_size>1){ 
               $product_cat = $terms3[$slug_size-1];
             
             if(!(in_array($product_cat, $temp_cat))){
-               var_dump($product_cat);
+               
                 $temp_cat[] = $product_cat;
                 $temp_prod[] = $product->id;
             }
@@ -385,7 +338,7 @@ function shortcode_create_mostSimilarBought($num_posts){
            $product_cat = $terms3[0];
 
             if(!(in_array($product_cat, $temp_cat))){
-               var_dump($product_cat);
+            
                 $temp_cat[] = $product_cat;
                 $temp_prod[] = $product->id;
             }
@@ -393,35 +346,36 @@ function shortcode_create_mostSimilarBought($num_posts){
          }  
 
      }
-     var_dump($temp_prod);
-     var_dump($temp_cat);
-     $anna='Συχνά σε πωλήσεις προιόντα';
-        $result1 .='<head><div class="section-title"><h2><font size ="5">'.$anna.' </font></h2></div></head>';  
+   
+     $anna='Συχνά σε πωλήσεις';
+     $anna2 = 'προϊόντα';
+        $result1 .='<head><div class="section-title" style="margin-bottom:1px; "><h2><font size ="5">'.$anna.' </font></h2></div></head>  <head><div class="section-title" style="margin-top:-30px;"><h2><font size ="5">'.$anna2.' </font></h2></div></head>';  
 
-      ///while($top->have_posts()){
+    
         foreach ($temp_prod as $key) {
-          # code...
-       
-        //$top_bought->the_post();        
+      
         $product = wc_get_product( $key );
             
             $i_url = wp_get_attachment_image_src(get_post_thumbnail_id($key),$size="thumbnail");
             $prod = get_permalink($key);            
-            var_dump($prod);
+         
         $result1 .='</body>
-          <div class = "active" style="width: 254.667px; margin-right:10px; display:block; margin-bottom:20px; ">
+          <div class = "active" style="width: 254.667px; margin-right:8px; display:inline-block; margin-bottom:20px; ">
             <a class="carousel-item" href="'.$prod.'" target="">
               <div class="teaser-image">
                 <img class= "img-responsive" data-src="htteps://" width="124" height="124" src="'.$i_url[0].'" style="opacity:1;" sizes="(max-width:124px) 100vw, 124px">
               </div>
             </a>
+             <span><font size ="3">
+            '.$product->get_title().' <br>
+            </span></font>
             <span><font size ="2">
             '.$product->get_price_html().' <br>
             </span></font>
             
             
-            <div>
-               <a class="button product_type_variable add_to_cart_button" href="'.$prod.'" "aria-label="Add"'.$product->get_title().'"to your cart" data-quantity="1" data-product_id="'.$product->get_id().'" data-product_sku="'.$product->get_sku().'" rel="nofollow" > Επιλογή </a></font>
+            <div class="woocommerce-LoopProduct-link woocommerce-loop-product__link"  style="margin-left:1px;  margin-bottom:40px;">
+               <a class="button product_type_variable add_to_cart_button" href="'.$prod.'" "aria-label="Add"'.$product->get_title().'"to your cart" data-quantity="1" data-product_id="'.$product->get_id().'" data-product_sku="'.$product->get_sku().'" rel="nofollow" style="color:#ffffff; background-color:#0366d6; border-radius:3px; border-width:1px 1px 1px 1px;"> Επιλογή </a></font>
                      
               </div>
           
