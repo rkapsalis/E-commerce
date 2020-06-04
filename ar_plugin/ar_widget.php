@@ -28,11 +28,12 @@ class ar_widget extends WP_Widget {
     // before and after widget arguments are defined by themes
    echo $args['before_widget'];
    if ( ! empty( $title ) )
-      echo $args['before_title'] . $title . $args['after_title'];
+      //echo $args['before_title'] . $title . $args['after_title'];
   
      // This is where you run the code and display the output
    $ar_widget=(int)"4";
-   echo __( 'Hello, World!', 'ar_widget_domain' );
+  
+   echo __( '', 'ar_widget_domain' );
    echo shortcode_create_topViewedProducts($ar_widget);
    echo shortcode_create_mostSimilarBought($ar_widget);
    echo $args['after_widget'];
@@ -44,7 +45,7 @@ public function form( $instance ) {
 	    $title = $instance[ 'title' ];
 	}
 	else {
-	    $title = __( 'kati', 'ar_widget_domain' );
+	    $title = __( 'product recomendation', 'ar_widget_domain' );
 	}
 // Widget admin form
     ?>
