@@ -4,7 +4,7 @@ if(!defined( 'ABSPATH' )){
 } 
 
 function arplugin_topViewedProducts_shortcode($atts){
-      $a = shortcode_atts( 
+      $atts = shortcode_atts( 
       	array(
             'top_products' => '4',
       	),
@@ -13,14 +13,14 @@ function arplugin_topViewedProducts_shortcode($atts){
      $content =  shortcode_create_topViewedProducts($atts['top_products']);
      return $content;
 }
-function arplugin_mostSimilarBought_shortcode($atts){
+function arplugin_mostSimilarBought_shortcode($a){
       $a = shortcode_atts( 
       	array(
             'top_products' => '4',
       	),
-      	$atts
+      	$a
       );
-     $content =  shortcode_create_mostSimilarBought($atts['top_products']);
+     $content =  shortcode_create_mostSimilarBought($a['top_products']);
      return $content;
 }
 add_shortcode('ar_shortcode1', 'arplugin_topViewedProducts_shortcode');
