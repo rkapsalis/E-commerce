@@ -1,0 +1,15 @@
+
+# BEGIN WordPress
+# Οι ντιρεκτίβες (γραμμές) ανάμεσα `BEGIN WordPress` και`END WordPress` είναι
+# δυναμικά δημιουργημένες, και θα πρέπει να τροποποιηθούν με τα φίλτρα WordPress.
+# Οποιεσδήποτε αλλαγές ανάμεσα στις ντιρεκτίβες ανάμεσα στους δείκτες θα επανεγραφεί.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /wordpress/
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /wordpress/index.php [L]
+</IfModule>
+
+# END WordPress
